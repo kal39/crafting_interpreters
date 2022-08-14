@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "chunk.h"
 #include "memory.h"
 
@@ -51,8 +48,8 @@ void chunk_add_byte(Chunk *chunk, uint8_t byte, int line) {
 }
 
 void chunk_add_word(Chunk *chunk, uint16_t word, int line) {
-	chunk_add_byte(chunk, (word >> 8) & 0xFF, 123);
-	chunk_add_byte(chunk, (word >> 0) & 0xFF, 123);
+	chunk_add_byte(chunk, ((uint8_t *)&word)[0], 123);
+	chunk_add_byte(chunk, ((uint8_t *)&word)[1], 123);
 }
 
 uint16_t chunk_add_constant(Chunk *chunk, Value value) {
