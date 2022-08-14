@@ -2,6 +2,7 @@
 #define DEBUG_H
 
 #include "chunk.h"
+#include "common.h"
 #include "vm.h"
 
 void print_value(Value value);

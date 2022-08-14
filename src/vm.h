@@ -2,6 +2,7 @@
 #define VM_H
 
 #include "chunk.h"
+#include "common.h"
 
 typedef struct VM {
 	Chunk *chunk;
@@ -23,6 +24,6 @@ void vm_destroy(VM *vm);
 void vm_push(VM *vm, Value value);
 Value vm_pop(VM *vm);
 
-InterpretResult vm_interpret(VM *vm, Chunk *chunk);
+InterpretResult vm_interpret(VM *vm, char *source);
 
 #endif

@@ -1,7 +1,7 @@
 #include "chunk.h"
 #include "memory.h"
 
-static void _add_value(Chunk *chunk, Value value) {
+static void _chunk_add_value(Chunk *chunk, Value value) {
 	if (chunk->valuesCapacity <= chunk->valuesSize) {
 		int oldCapacity = chunk->valuesCapacity;
 		chunk->valuesCapacity = chunk->valuesCapacity < 8 ? 8 : chunk->valuesCapacity * 2;
@@ -53,6 +53,6 @@ void chunk_add_word(Chunk *chunk, uint16_t word, int line) {
 }
 
 uint16_t chunk_add_constant(Chunk *chunk, Value value) {
-	_add_value(chunk, value);
+	_chunk_add_value(chunk, value);
 	return chunk->valuesSize - 1;
 }

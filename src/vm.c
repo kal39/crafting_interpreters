@@ -1,24 +1,24 @@
 #include "vm.h"
-#include "common.h"
+#include "compiler.h"
 #include "debug.h"
 #include "memory.h"
 
 #define POP() vm_pop(vm);
 #define PUSH(value) vm_push(vm, (value))
 
-static uint8_t _read_byte(VM *vm) {
+static uint8_t _vm_read_byte(VM *vm) {
 	uint8_t byte = *vm->ip;
 	vm->ip++;
 	return byte;
 }
 
-static uint16_t _read_word(VM *vm) {
+static uint16_t _vm_read_word(VM *vm) {
 	uint16_t word = *(uint16_t *)vm->ip;
 	vm->ip += 2;
 	return word;
 }
 
-static InterpretResult _run(VM *vm) {
+static InterpretResult _vm_run(VM *vm) {
 	for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
 		printf("\n");
@@ -27,9 +27,9 @@ static InterpretResult _run(VM *vm) {
 #endif
 
 		uint8_t instruction;
-		switch (instruction = _read_byte(vm)) {
+		switch (instruction = _vm_read_byte(vm)) {
 			case OP_CONSTANT: {
-				PUSH(vm->chunk->values[_read_word(vm)]);
+				PUSH(vm->chunk->values[_vm_read_word(vm)]);
 				break;
 			}
 
@@ -99,8 +99,7 @@ Value vm_pop(VM *vm) {
 	return *vm->stackTop;
 }
 
-InterpretResult vm_interpret(VM *vm, Chunk *chunk) {
-	vm->chunk = chunk;
-	vm->ip = vm->chunk->code;
-	return _run(vm);
+InterpretResult vm_interpret(VM *vm, char *source) {
+	compile(source);
+	return _vm_run(vm);
 }

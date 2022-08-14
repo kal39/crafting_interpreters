@@ -6,7 +6,10 @@ void *reallocate(void *pointer, size_t oldSize, size_t newSize) {
 		return NULL;
 	} else {
 		void *result = realloc(pointer, newSize);
-		if (result == NULL) exit(1);
+		if (result == NULL) {
+			fprintf(stderr, "realloc failed\n");
+			exit(1);
+		}
 		return result;
 	}
 }

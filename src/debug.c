@@ -1,13 +1,13 @@
 #include "debug.h"
 
-static int _constant_instruction(const char *name, Chunk *chunk, int offset) {
+static int _constant_instruction(char *name, Chunk *chunk, int offset) {
 	printf("%-16s %03d %03d ", name, chunk->code[offset + 1], chunk->code[offset + 2]);
 	print_value(chunk->values[*(uint16_t *)&chunk->code[offset + 1]]);
 	printf("\n");
 	return offset + 3;
 }
 
-static int _simple_instruction(const char *name, int offset) {
+static int _simple_instruction(char *name, int offset) {
 	printf("%-16s\n", name);
 	return offset + 1;
 }
@@ -30,22 +30,14 @@ int print_instruction(Chunk *chunk, int offset) {
 	uint8_t instruction = chunk->code[offset];
 
 	switch (instruction) {
-		case OP_CONSTANT:
-			return _constant_instruction("OP_CONSTANT", chunk, offset);
-		case OP_ADD:
-			return _simple_instruction("OP_ADD", offset);
-		case OP_SUBTRACT:
-			return _simple_instruction("OP_SUBTRACT", offset);
-		case OP_MULTIPLY:
-			return _simple_instruction("OP_MULTIPLY", offset);
-		case OP_DIVIDE:
-			return _simple_instruction("OP_DIVIDE", offset);
-		case OP_NEGATE:
-			return _simple_instruction("OP_NEGATE", offset);
-		case OP_RETURN:
-			return _simple_instruction("OP_RETURN", offset);
-		default:
-			return _unknow_instruction(instruction, offset);
+		case OP_CONSTANT: return _constant_instruction("OP_CONSTANT", chunk, offset);
+		case OP_ADD: return _simple_instruction("OP_ADD", offset);
+		case OP_SUBTRACT: return _simple_instruction("OP_SUBTRACT", offset);
+		case OP_MULTIPLY: return _simple_instruction("OP_MULTIPLY", offset);
+		case OP_DIVIDE: return _simple_instruction("OP_DIVIDE", offset);
+		case OP_NEGATE: return _simple_instruction("OP_NEGATE", offset);
+		case OP_RETURN: return _simple_instruction("OP_RETURN", offset);
+		default: return _unknow_instruction(instruction, offset);
 	}
 }
 
