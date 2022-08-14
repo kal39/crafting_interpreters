@@ -21,10 +21,11 @@ typedef struct Chunk {
 	Value *values;
 } Chunk;
 
-void chunk_initialize(Chunk *chunk);
+Chunk *chunk_create();
 void chunk_destroy(Chunk *chunk);
 
 void chunk_add_byte(Chunk *chunk, uint8_t byte, int line);
+void chunk_add_word(Chunk *chunk, uint16_t word, int line);
 uint16_t chunk_add_constant(Chunk *chunk, Value value);
 
 #endif
