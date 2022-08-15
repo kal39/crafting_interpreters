@@ -21,8 +21,8 @@ typedef enum InterpretResult {
 VM *vm_create();
 void vm_destroy(VM *vm);
 
-void vm_push(VM *vm, Value value);
-Value vm_pop(VM *vm);
+#define VM_PUSH(vm, value) (*(vm)->stackTop++ = (value))
+#define VM_POP(vm) (*(--(vm)->stackTop))
 
 InterpretResult vm_interpret(VM *vm, char *source);
 

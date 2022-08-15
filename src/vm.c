@@ -3,20 +3,10 @@
 #include "debug.h"
 #include "memory.h"
 
-#define POP() vm_pop(vm)
-#define PUSH(value) vm_push(vm, (value))
-
-static Byte _read_byte(VM *vm) {
-	Byte byte = *vm->ip;
-	vm->ip++;
-	return byte;
-}
-
-static Word _read_word(VM *vm) {
-	Word word = *(Word *)vm->ip;
-	vm->ip += 2;
-	return word;
-}
+#define POP() VM_POP(vm)
+#define PUSH(value) VM_PUSH(vm, (value))
+#define READ_BYTE() (*vm->ip++)
+#define READ_WORD() (*(Word *)((vm->ip += 2) - 2))
 
 static InterpretResult _run(VM *vm) {
 	for (;;) {
@@ -27,55 +17,50 @@ static InterpretResult _run(VM *vm) {
 #endif
 
 		Byte instruction;
-		switch (instruction = _read_byte(vm)) {
+		switch (instruction = READ_BYTE()) {
 			case OP_CONSTANT: {
-				PUSH(vm->chunk->values[_read_word(vm)]);
+				PUSH(vm->chunk->values[READ_WORD()]);
 				break;
 			}
-
 			case OP_NEGATE: {
-				PUSH(-POP());
+				double a = POP();
+				PUSH(-a);
 				break;
 			}
-
 			case OP_ADD: {
 				double b = POP();
 				double a = POP();
 				PUSH(a + b);
 				break;
 			}
-
 			case OP_SUBTRACT: {
 				double b = POP();
 				double a = POP();
 				PUSH(a - b);
 				break;
 			}
-
 			case OP_MULTIPLY: {
 				double b = POP();
 				double a = POP();
 				PUSH(a * b);
 				break;
 			}
-
 			case OP_DIVIDE: {
 				double b = POP();
 				double a = POP();
 				PUSH(a / b);
 				break;
 			}
-
 			case OP_POWER: {
 				double b = POP();
 				double a = POP();
 				PUSH(pow(a, b));
 				break;
 			}
-
 			case OP_RETURN: {
+				Value a = POP();
 				printf(" = ");
-				print_value(POP());
+				print_value(a);
 				printf("\n");
 				return INTERPRET_OK;
 			}
@@ -92,16 +77,6 @@ VM *vm_create() {
 
 void vm_destroy(VM *vm) {
 	vm = FREE_STRUCT(VM, vm);
-}
-
-void vm_push(VM *vm, Value value) {
-	*vm->stackTop = value;
-	vm->stackTop++;
-}
-
-Value vm_pop(VM *vm) {
-	vm->stackTop--;
-	return *vm->stackTop;
 }
 
 InterpretResult vm_interpret(VM *vm, char *source) {

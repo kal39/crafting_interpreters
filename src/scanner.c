@@ -1,34 +1,21 @@
 #include "scanner.h"
 #include "memory.h"
 
-static bool _is_digit(char c) {
-	return c >= '0' && c <= '9';
-}
+#define IS_DIGIT(c) ((c) >= '0' && (c) <= '9')
+#define IS_ALPHA(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z') || (c) == '_')
 
-static bool _is_alpha(char c) {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-}
+#define TOKEN(token_type)                                                                                                                                      \
+	(Token) {                                                                                                                                                  \
+		.type = (token_type), .start = scanner->start, .length = (int)(scanner->current - scanner->start), .line = scanner->line,                              \
+	}
+
+#define ERROR_TOKEN(message)                                                                                                                                   \
+	(Token) {                                                                                                                                                  \
+		.type = TOKEN_ERROR, .start = (message), .length = (int)strlen((message)), .line = scanner->line,                                                      \
+	}
 
 static bool _at_end(Scanner *scanner) {
 	return *scanner->current == '\0';
-}
-
-static Token _make_token(Scanner *scanner, TokenType type) {
-	Token token;
-	token.type = type;
-	token.start = scanner->start;
-	token.length = (int)(scanner->current - scanner->start);
-	token.line = scanner->line;
-	return token;
-}
-
-static Token _make_error_token(Scanner *scanner, char *message) {
-	Token token;
-	token.type = TOKEN_ERROR;
-	token.start = message;
-	token.length = (int)strlen(message);
-	token.line = scanner->line;
-	return token;
 }
 
 static char _advance(Scanner *scanner) {
@@ -105,26 +92,26 @@ static Token _make_string_token(Scanner *scanner) {
 		_advance(scanner);
 	}
 
-	if (_at_end(scanner)) return _make_error_token(scanner, "Unterminated string");
+	if (_at_end(scanner)) return ERROR_TOKEN("Unterminated string");
 
 	_advance(scanner);
-	return _make_token(scanner, TOKEN_STRING);
+	return TOKEN(TOKEN_STRING);
 }
 
 static Token _make_number_token(Scanner *scanner) {
-	while (_is_digit(_peek(scanner))) _advance(scanner);
+	while (IS_DIGIT(_peek(scanner))) _advance(scanner);
 
-	if (_peek(scanner) == '.' && _is_digit(_peek_next(scanner))) {
+	if (_peek(scanner) == '.' && IS_DIGIT(_peek_next(scanner))) {
 		_advance(scanner);
-		while (_is_digit(_peek(scanner))) _advance(scanner);
+		while (IS_DIGIT(_peek(scanner))) _advance(scanner);
 	}
 
-	return _make_token(scanner, TOKEN_NUMBER);
+	return TOKEN(TOKEN_NUMBER);
 }
 
 static Token _make_identifier_token(Scanner *scanner) {
-	while (_is_alpha(_peek(scanner)) || _is_digit(_peek(scanner))) _advance(scanner);
-	return _make_token(scanner, _get_identifier_type(scanner));
+	while (IS_ALPHA(_peek(scanner)) || IS_DIGIT(_peek(scanner))) _advance(scanner);
+	return TOKEN(_get_identifier_type(scanner));
 }
 
 Scanner *scanner_create(char *source) {
@@ -145,32 +132,32 @@ Token scanner_next_token(Scanner *scanner) {
 	_skip_whitespace(scanner);
 	scanner->start = scanner->current;
 
-	if (_at_end(scanner)) return _make_token(scanner, TOKEN_EOF);
+	if (_at_end(scanner)) return TOKEN(TOKEN_EOF);
 
 	char c = _advance(scanner);
 
-	if (_is_alpha(c)) return _make_identifier_token(scanner);
-	if (_is_digit(c)) return _make_number_token(scanner);
+	if (IS_ALPHA(c)) return _make_identifier_token(scanner);
+	if (IS_DIGIT(c)) return _make_number_token(scanner);
 
 	switch (c) {
-		case '(': return _make_token(scanner, TOKEN_PAREN_LEFT);
-		case ')': return _make_token(scanner, TOKEN_PAREN_RIGHT);
-		case '{': return _make_token(scanner, TOKEN_BRACE_LEFT);
-		case '}': return _make_token(scanner, TOKEN_BRACE_RIGHT);
-		case ';': return _make_token(scanner, TOKEN_SEMICOLON);
-		case ',': return _make_token(scanner, TOKEN_COMMA);
-		case '.': return _make_token(scanner, TOKEN_DOT);
-		case '-': return _make_token(scanner, TOKEN_MINUS);
-		case '+': return _make_token(scanner, TOKEN_PLUS);
-		case '/': return _make_token(scanner, TOKEN_SLASH);
-		case '*': return _make_token(scanner, TOKEN_STAR);
-		case '^': return _make_token(scanner, TOKEN_CARROT);
-		case '!': return _make_token(scanner, _match(scanner, '=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
-		case '=': return _make_token(scanner, _match(scanner, '=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
-		case '<': return _make_token(scanner, _match(scanner, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
-		case '>': return _make_token(scanner, _match(scanner, '=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+		case '(': return TOKEN(TOKEN_PAREN_LEFT);
+		case ')': return TOKEN(TOKEN_PAREN_RIGHT);
+		case '{': return TOKEN(TOKEN_BRACE_LEFT);
+		case '}': return TOKEN(TOKEN_BRACE_RIGHT);
+		case ';': return TOKEN(TOKEN_SEMICOLON);
+		case ',': return TOKEN(TOKEN_COMMA);
+		case '.': return TOKEN(TOKEN_DOT);
+		case '-': return TOKEN(TOKEN_MINUS);
+		case '+': return TOKEN(TOKEN_PLUS);
+		case '/': return TOKEN(TOKEN_SLASH);
+		case '*': return TOKEN(TOKEN_STAR);
+		case '^': return TOKEN(TOKEN_CARROT);
+		case '!': return TOKEN(_match(scanner, '=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
+		case '=': return TOKEN(_match(scanner, '=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
+		case '<': return TOKEN(_match(scanner, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+		case '>': return TOKEN(_match(scanner, '=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
 		case '"': return _make_string_token(scanner);
 	}
 
-	return _make_error_token(scanner, "Unexpected character");
+	return ERROR_TOKEN("Unexpected character");
 }

@@ -6,13 +6,44 @@
 #include "memory.h"
 #include "scanner.h"
 
+#define WRITE_BYTE(byte) chunk_add_byte(parser->chunk, (byte), parser->previous.line)
+#define WRITE_WORD(word) chunk_add_word(parser->chunk, (word), parser->previous.line);
+
+#define ERROR_CURENT(message) _error_at(parser, &parser->current, (message))
+#define ERROR_PREVIOUS(message) _error_at(parser, &parser->previous, (message))
+
+#define GET_RULE(type) (&RULES[(type)])
+
+typedef enum _Precedence {
+	PRECEDENCE_NONE,
+	PRECEDENCE_ASSIGNMENT,
+	PRECEDENCE_OR,
+	PRECEDENCE_AND,
+	PRECEDENCE_EQUALITY,
+	PRECEDENCE_COMPARISON,
+	PRECEDENCE_TERM,
+	PRECEDENCE_FACTOR,
+	PRECEDENCE_POWER,
+	PRECEDENCE_UNARY,
+	PRECEDENCE_CALL,
+	PRECEDENCE_PRIMARY
+} _Precedence;
+
+typedef void (*_ParseFn)(Parser *);
+
+typedef struct _ParseRule {
+	_ParseFn prefix;
+	_ParseFn infix;
+	_Precedence precedence;
+} _ParseRule;
+
 static void _expression(Parser *parser);
 static void _number(Parser *parser);
 static void _grouping(Parser *parser);
 static void _unary(Parser *parser);
 static void _binary(Parser *parser);
 
-ParseRule rules[] = {
+static _ParseRule RULES[] = {
 	[TOKEN_PAREN_LEFT] = {_grouping, NULL, PRECEDENCE_NONE},
 	[TOKEN_PAREN_RIGHT] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_BRACE_LEFT] = {NULL, NULL, PRECEDENCE_NONE},
@@ -90,20 +121,13 @@ static void _error_at(Parser *parser, Token *token, char *message) {
 	parser->error = true;
 }
 
-static void _error_current(Parser *parser, char *message) {
-	_error_at(parser, &parser->current, message);
-}
-static void _error_previous(Parser *parser, char *message) {
-	_error_at(parser, &parser->previous, message);
-}
-
 static void _advance(Parser *parser) {
 	parser->previous = parser->current;
 
 	for (;;) {
 		parser->current = scanner_next_token(parser->scanner);
 		if (parser->current.type != TOKEN_ERROR) break;
-		_error_current(parser, parser->current.start);
+		ERROR_CURENT(parser->current.start);
 	}
 }
 
@@ -111,48 +135,36 @@ static void _consume(Parser *parser, TokenType type, char *message) {
 	if (parser->current.type == type) {
 		_advance(parser);
 	} else {
-		_error_current(parser, message);
+		ERROR_CURENT(message);
 	}
-}
-
-static void _add_byte(Parser *parser, Byte byte) {
-	chunk_add_byte(parser->chunk, byte, parser->previous.line);
-}
-
-static void _add_word(Parser *parser, Word word) {
-	chunk_add_word(parser->chunk, word, parser->previous.line);
 }
 
 static Word _make_constant(Parser *parser, Value value) {
 	Word constant = chunk_add_constant(parser->chunk, value);
 
 	if (constant > UINT16_MAX) {
-		_error_previous(parser, "Too many constants in one chunk.");
+		ERROR_PREVIOUS("Too many constants in one chunk");
 		return 0;
 	} else {
 		return constant;
 	}
 }
 
-static ParseRule *_get_rule(TokenType type) {
-	return &rules[type];
-}
-
-static void _parse_precedence(Parser *parser, Precedence precedence) {
+static void _parse_precedence(Parser *parser, _Precedence precedence) {
 	_advance(parser);
 
-	ParseFn prefixRule = _get_rule(parser->previous.type)->prefix;
+	_ParseFn prefixRule = GET_RULE(parser->previous.type)->prefix;
 
 	if (prefixRule == NULL) {
-		_error_previous(parser, "Expect expression.");
+		ERROR_PREVIOUS("Expect expression.");
 		return;
 	}
 
 	prefixRule(parser);
 
-	while (precedence <= _get_rule(parser->current.type)->precedence) {
+	while (precedence <= GET_RULE(parser->current.type)->precedence) {
 		_advance(parser);
-		ParseFn infixRule = _get_rule(parser->previous.type)->infix;
+		_ParseFn infixRule = GET_RULE(parser->previous.type)->infix;
 		infixRule(parser);
 	}
 }
@@ -161,15 +173,19 @@ static void _expression(Parser *parser) {
 	_parse_precedence(parser, PRECEDENCE_ASSIGNMENT);
 }
 
-static void _number(Parser *parser) {
-	double value = strtod(parser->previous.start, NULL);
-	_add_byte(parser, OP_CONSTANT);
-	_add_word(parser, _make_constant(parser, value));
-}
+static void _binary(Parser *parser) {
+	TokenType operatorType = parser->previous.type;
+	_ParseRule *rule = GET_RULE(operatorType);
+	_parse_precedence(parser, (_Precedence)(rule->precedence + 1));
 
-static void _grouping(Parser *parser) {
-	_expression(parser);
-	_consume(parser, TOKEN_PAREN_RIGHT, "Expect ')' after expression");
+	switch (operatorType) {
+		case TOKEN_PLUS: WRITE_BYTE(OP_ADD); break;
+		case TOKEN_MINUS: WRITE_BYTE(OP_SUBTRACT); break;
+		case TOKEN_STAR: WRITE_BYTE(OP_MULTIPLY); break;
+		case TOKEN_SLASH: WRITE_BYTE(OP_DIVIDE); break;
+		case TOKEN_CARROT: WRITE_BYTE(OP_POWER); break;
+		default: break;
+	}
 }
 
 static void _unary(Parser *parser) {
@@ -177,24 +193,20 @@ static void _unary(Parser *parser) {
 	_parse_precedence(parser, PRECEDENCE_UNARY);
 
 	switch (operatorType) {
-		case TOKEN_MINUS: _add_byte(parser, OP_NEGATE); break;
+		case TOKEN_MINUS: WRITE_BYTE(OP_NEGATE); break;
 		default: break;
 	}
 }
 
-static void _binary(Parser *parser) {
-	TokenType operatorType = parser->previous.type;
-	ParseRule *rule = _get_rule(operatorType);
-	_parse_precedence(parser, (Precedence)(rule->precedence + 1));
+static void _grouping(Parser *parser) {
+	_expression(parser);
+	_consume(parser, TOKEN_PAREN_RIGHT, "Expect ')'");
+}
 
-	switch (operatorType) {
-		case TOKEN_PLUS: _add_byte(parser, OP_ADD); break;
-		case TOKEN_MINUS: _add_byte(parser, OP_SUBTRACT); break;
-		case TOKEN_STAR: _add_byte(parser, OP_MULTIPLY); break;
-		case TOKEN_SLASH: _add_byte(parser, OP_DIVIDE); break;
-		case TOKEN_CARROT: _add_byte(parser, OP_POWER); break;
-		default: break;
-	}
+static void _number(Parser *parser) {
+	double value = strtod(parser->previous.start, NULL);
+	WRITE_BYTE(OP_CONSTANT);
+	WRITE_WORD(_make_constant(parser, value));
 }
 
 bool compile(Chunk *chunk, char *source) {
@@ -202,8 +214,8 @@ bool compile(Chunk *chunk, char *source) {
 
 	_advance(parser);
 	_expression(parser);
-	_consume(parser, TOKEN_EOF, "Expect end of expression.");
-	_add_byte(parser, OP_RETURN);
+	_consume(parser, TOKEN_EOF, "Expect end of expression");
+	WRITE_BYTE(OP_RETURN);
 
 #ifdef DEBUG_PRINT_CODE
 	if (!parser->error) print_chunk(parser->chunk);
