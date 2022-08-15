@@ -1,8 +1,0 @@
-{
-	"files.associations": {
-		"*.h": "c",
-		"*.cl": "opencl",
-		"cstddef": "c",
-		"random": "c"
-	}
-}
