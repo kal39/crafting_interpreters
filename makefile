@@ -7,7 +7,7 @@ INCLUDE_FOLDER :=
 LIB_FOLDER     := 
 BUILD_FOLDER   := build
 SRC_FOLDER     := src
-LIBS           := 
+LIBS           := -lm
 FLAGS          := -Wall -Wno-missing-braces
 DEFS           := 
 

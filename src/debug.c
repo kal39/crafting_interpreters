@@ -36,6 +36,7 @@ int print_instruction(Chunk *chunk, int offset) {
 		case OP_MULTIPLY: return _simple_instruction("OP_MULTIPLY", offset);
 		case OP_DIVIDE: return _simple_instruction("OP_DIVIDE", offset);
 		case OP_NEGATE: return _simple_instruction("OP_NEGATE", offset);
+		case OP_POWER: return _simple_instruction("OP_POWER", offset);
 		case OP_RETURN: return _simple_instruction("OP_RETURN", offset);
 		default: return _unknow_instruction(instruction, offset);
 	}

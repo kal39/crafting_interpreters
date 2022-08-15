@@ -3,7 +3,7 @@
 #include "debug.h"
 #include "memory.h"
 
-#define POP() vm_pop(vm);
+#define POP() vm_pop(vm)
 #define PUSH(value) vm_push(vm, (value))
 
 static Byte _read_byte(VM *vm) {
@@ -34,8 +34,7 @@ static InterpretResult _run(VM *vm) {
 			}
 
 			case OP_NEGATE: {
-				double a = POP();
-				PUSH(-a);
+				PUSH(-POP());
 				break;
 			}
 
@@ -67,10 +66,16 @@ static InterpretResult _run(VM *vm) {
 				break;
 			}
 
+			case OP_POWER: {
+				double b = POP();
+				double a = POP();
+				PUSH(pow(a, b));
+				break;
+			}
+
 			case OP_RETURN: {
 				printf(" = ");
-				double a = POP();
-				print_value(a);
+				print_value(POP());
 				printf("\n");
 				return INTERPRET_OK;
 			}

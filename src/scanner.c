@@ -153,10 +153,10 @@ Token scanner_next_token(Scanner *scanner) {
 	if (_is_digit(c)) return _make_number_token(scanner);
 
 	switch (c) {
-		case '(': return _make_token(scanner, TOKEN_LEFT_PAREN);
-		case ')': return _make_token(scanner, TOKEN_RIGHT_PAREN);
-		case '{': return _make_token(scanner, TOKEN_LEFT_BRACE);
-		case '}': return _make_token(scanner, TOKEN_RIGHT_BRACE);
+		case '(': return _make_token(scanner, TOKEN_PAREN_LEFT);
+		case ')': return _make_token(scanner, TOKEN_PAREN_RIGHT);
+		case '{': return _make_token(scanner, TOKEN_BRACE_LEFT);
+		case '}': return _make_token(scanner, TOKEN_BRACE_RIGHT);
 		case ';': return _make_token(scanner, TOKEN_SEMICOLON);
 		case ',': return _make_token(scanner, TOKEN_COMMA);
 		case '.': return _make_token(scanner, TOKEN_DOT);
@@ -164,6 +164,7 @@ Token scanner_next_token(Scanner *scanner) {
 		case '+': return _make_token(scanner, TOKEN_PLUS);
 		case '/': return _make_token(scanner, TOKEN_SLASH);
 		case '*': return _make_token(scanner, TOKEN_STAR);
+		case '^': return _make_token(scanner, TOKEN_CARROT);
 		case '!': return _make_token(scanner, _match(scanner, '=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
 		case '=': return _make_token(scanner, _match(scanner, '=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
 		case '<': return _make_token(scanner, _match(scanner, '=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
