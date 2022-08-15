@@ -18,7 +18,7 @@ typedef double Value;
 typedef struct Chunk {
 	int codeSize;
 	int codeCapacity;
-	uint8_t *code;
+	Byte *code;
 	int *lines;
 
 	int valuesSize;
@@ -29,8 +29,8 @@ typedef struct Chunk {
 Chunk *chunk_create();
 void chunk_destroy(Chunk *chunk);
 
-void chunk_add_byte(Chunk *chunk, uint8_t byte, int line);
-void chunk_add_word(Chunk *chunk, uint16_t word, int line);
-uint16_t chunk_add_constant(Chunk *chunk, Value value);
+void chunk_add_byte(Chunk *chunk, Byte byte, int line);
+void chunk_add_word(Chunk *chunk, Word word, int line);
+Word chunk_add_constant(Chunk *chunk, Value value);
 
 #endif

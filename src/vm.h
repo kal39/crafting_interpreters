@@ -6,7 +6,7 @@
 
 typedef struct VM {
 	Chunk *chunk;
-	uint8_t *ip;
+	Byte *ip;
 
 	Value *stackTop;
 	Value stack[STACK_SIZE];

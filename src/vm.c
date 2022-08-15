@@ -6,19 +6,19 @@
 #define POP() vm_pop(vm);
 #define PUSH(value) vm_push(vm, (value))
 
-static uint8_t _vm_read_byte(VM *vm) {
-	uint8_t byte = *vm->ip;
+static Byte _read_byte(VM *vm) {
+	Byte byte = *vm->ip;
 	vm->ip++;
 	return byte;
 }
 
-static uint16_t _vm_read_word(VM *vm) {
-	uint16_t word = *(uint16_t *)vm->ip;
+static Word _read_word(VM *vm) {
+	Word word = *(Word *)vm->ip;
 	vm->ip += 2;
 	return word;
 }
 
-static InterpretResult _vm_run(VM *vm) {
+static InterpretResult _run(VM *vm) {
 	for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
 		printf("\n");
@@ -26,10 +26,10 @@ static InterpretResult _vm_run(VM *vm) {
 		print_instruction(vm->chunk, vm->ip - vm->chunk->code);
 #endif
 
-		uint8_t instruction;
-		switch (instruction = _vm_read_byte(vm)) {
+		Byte instruction;
+		switch (instruction = _read_byte(vm)) {
 			case OP_CONSTANT: {
-				PUSH(vm->chunk->values[_vm_read_word(vm)]);
+				PUSH(vm->chunk->values[_read_word(vm)]);
 				break;
 			}
 
@@ -68,7 +68,7 @@ static InterpretResult _vm_run(VM *vm) {
 			}
 
 			case OP_RETURN: {
-				printf(" > ");
+				printf(" = ");
 				double a = POP();
 				print_value(a);
 				printf("\n");
@@ -100,6 +100,16 @@ Value vm_pop(VM *vm) {
 }
 
 InterpretResult vm_interpret(VM *vm, char *source) {
-	compile(source);
-	return _vm_run(vm);
+	Chunk *chunk = chunk_create();
+
+	if (compile(chunk, source)) return INTERPRET_COMPILE_ERROR;
+
+	vm->chunk = chunk;
+	vm->ip = chunk->code;
+
+	InterpretResult result = _run(vm);
+
+	chunk_destroy(chunk);
+
+	return result;
 }

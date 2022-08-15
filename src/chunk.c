@@ -1,7 +1,7 @@
 #include "chunk.h"
 #include "memory.h"
 
-static void _chunk_add_value(Chunk *chunk, Value value) {
+static void _add_value(Chunk *chunk, Value value) {
 	if (chunk->valuesCapacity <= chunk->valuesSize) {
 		int oldCapacity = chunk->valuesCapacity;
 		chunk->valuesCapacity = chunk->valuesCapacity < 8 ? 8 : chunk->valuesCapacity * 2;
@@ -28,17 +28,17 @@ Chunk *chunk_create() {
 }
 
 void chunk_destroy(Chunk *chunk) {
-	FREE_ARRAY(uint8_t, chunk->code, chunk->codeCapacity);
+	FREE_ARRAY(Byte, chunk->code, chunk->codeCapacity);
 	FREE_ARRAY(int, chunk->lines, chunk->codeCapacity);
 	FREE_ARRAY(Value, chunk->values, chunk->valuesCapacity);
 	FREE_STRUCT(Chunk, chunk);
 }
 
-void chunk_add_byte(Chunk *chunk, uint8_t byte, int line) {
+void chunk_add_byte(Chunk *chunk, Byte byte, int line) {
 	if (chunk->codeCapacity <= chunk->codeSize) {
 		int oldCapacity = chunk->codeCapacity;
 		chunk->codeCapacity = chunk->codeCapacity < 8 ? 8 : chunk->codeCapacity * 2;
-		chunk->code = RESIZE_ARRAY(uint8_t, chunk->code, oldCapacity, chunk->codeCapacity);
+		chunk->code = RESIZE_ARRAY(Byte, chunk->code, oldCapacity, chunk->codeCapacity);
 		chunk->lines = RESIZE_ARRAY(int, chunk->lines, oldCapacity, chunk->codeCapacity);
 	}
 
@@ -47,12 +47,12 @@ void chunk_add_byte(Chunk *chunk, uint8_t byte, int line) {
 	chunk->codeSize++;
 }
 
-void chunk_add_word(Chunk *chunk, uint16_t word, int line) {
-	chunk_add_byte(chunk, ((uint8_t *)&word)[0], 123);
-	chunk_add_byte(chunk, ((uint8_t *)&word)[1], 123);
+void chunk_add_word(Chunk *chunk, Word word, int line) {
+	chunk_add_byte(chunk, ((Byte *)&word)[0], line);
+	chunk_add_byte(chunk, ((Byte *)&word)[1], line);
 }
 
-uint16_t chunk_add_constant(Chunk *chunk, Value value) {
-	_chunk_add_value(chunk, value);
+Word chunk_add_constant(Chunk *chunk, Value value) {
+	_add_value(chunk, value);
 	return chunk->valuesSize - 1;
 }

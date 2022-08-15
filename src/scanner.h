@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-typedef enum {
+typedef enum TokenType {
 	// Single char
 	TOKEN_LEFT_PAREN,
 	TOKEN_RIGHT_PAREN,

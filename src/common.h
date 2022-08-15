@@ -9,6 +9,11 @@
 #include <string.h>
 
 #define STACK_SIZE 256
+
 #define DEBUG_TRACE_EXECUTION
+#define DEBUG_PRINT_CODE
+
+typedef uint8_t Byte;
+typedef uint16_t Word;
 
 #endif

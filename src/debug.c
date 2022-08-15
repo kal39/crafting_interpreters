@@ -2,7 +2,7 @@
 
 static int _constant_instruction(char *name, Chunk *chunk, int offset) {
 	printf("%-16s %03d %03d ", name, chunk->code[offset + 1], chunk->code[offset + 2]);
-	print_value(chunk->values[*(uint16_t *)&chunk->code[offset + 1]]);
+	print_value(chunk->values[*(Word *)&chunk->code[offset + 1]]);
 	printf("\n");
 	return offset + 3;
 }
@@ -12,7 +12,7 @@ static int _simple_instruction(char *name, int offset) {
 	return offset + 1;
 }
 
-static int _unknow_instruction(uint8_t instruction, int offset) {
+static int _unknow_instruction(Byte instruction, int offset) {
 	printf("Unknown opcode %04d\n", instruction);
 	return offset + 1;
 }
@@ -27,7 +27,7 @@ int print_instruction(Chunk *chunk, int offset) {
 	if (offset > 0 && chunk->lines[offset] == chunk->lines[offset - 1]) printf("     ");
 	else printf("%4d ", chunk->lines[offset]);
 
-	uint8_t instruction = chunk->code[offset];
+	Byte instruction = chunk->code[offset];
 
 	switch (instruction) {
 		case OP_CONSTANT: return _constant_instruction("OP_CONSTANT", chunk, offset);
