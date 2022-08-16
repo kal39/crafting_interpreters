@@ -7,14 +7,14 @@
 #include "scanner.h"
 
 #define WRITE_BYTE(byte) chunk_add_byte(parser->chunk, (byte), parser->previous.line)
-#define WRITE_WORD(word) chunk_add_word(parser->chunk, (word), parser->previous.line);
+#define WRITE_WORD(word) chunk_add_word(parser->chunk, (word), parser->previous.line)
 
 #define ERROR_CURENT(message) _error_at(parser, &parser->current, (message))
 #define ERROR_PREVIOUS(message) _error_at(parser, &parser->previous, (message))
 
 #define GET_RULE(type) (&RULES[(type)])
 
-typedef enum _Precedence {
+typedef enum {
 	PRECEDENCE_NONE,
 	PRECEDENCE_ASSIGNMENT,
 	PRECEDENCE_OR,
@@ -31,17 +31,18 @@ typedef enum _Precedence {
 
 typedef void (*_ParseFn)(Parser *);
 
-typedef struct _ParseRule {
+typedef struct {
 	_ParseFn prefix;
 	_ParseFn infix;
 	_Precedence precedence;
 } _ParseRule;
 
 static void _expression(Parser *parser);
-static void _number(Parser *parser);
-static void _grouping(Parser *parser);
-static void _unary(Parser *parser);
 static void _binary(Parser *parser);
+static void _unary(Parser *parser);
+static void _grouping(Parser *parser);
+static void _number(Parser *parser);
+static void _literal(Parser *parser);
 
 static _ParseRule RULES[] = {
 	[TOKEN_PAREN_LEFT] = {_grouping, NULL, PRECEDENCE_NONE},
@@ -56,31 +57,31 @@ static _ParseRule RULES[] = {
 	[TOKEN_SLASH] = {NULL, _binary, PRECEDENCE_FACTOR},
 	[TOKEN_STAR] = {NULL, _binary, PRECEDENCE_FACTOR},
 	[TOKEN_CARROT] = {NULL, _binary, PRECEDENCE_POWER},
-	[TOKEN_BANG] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_BANG_EQUAL] = {NULL, NULL, PRECEDENCE_NONE},
+	[TOKEN_BANG] = {_unary, NULL, PRECEDENCE_NONE},
+	[TOKEN_BANG_EQUAL] = {NULL, _binary, PRECEDENCE_EQUALITY},
 	[TOKEN_EQUAL] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_EQUAL_EQUAL] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_GREATER] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_GREATER_EQUAL] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_LESS] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_LESS_EQUAL] = {NULL, NULL, PRECEDENCE_NONE},
+	[TOKEN_EQUAL_EQUAL] = {NULL, _binary, PRECEDENCE_EQUALITY},
+	[TOKEN_GREATER] = {NULL, _binary, PRECEDENCE_COMPARISON},
+	[TOKEN_GREATER_EQUAL] = {NULL, _binary, PRECEDENCE_COMPARISON},
+	[TOKEN_LESS] = {NULL, _binary, PRECEDENCE_COMPARISON},
+	[TOKEN_LESS_EQUAL] = {NULL, _binary, PRECEDENCE_COMPARISON},
 	[TOKEN_IDENTIFIER] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_STRING] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_NUMBER] = {_number, NULL, PRECEDENCE_NONE},
 	[TOKEN_AND] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_CLASS] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_ELSE] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_FALSE] = {NULL, NULL, PRECEDENCE_NONE},
+	[TOKEN_FALSE] = {_literal, NULL, PRECEDENCE_NONE},
 	[TOKEN_FOR] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_FUN] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_IF] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_NIL] = {NULL, NULL, PRECEDENCE_NONE},
+	[TOKEN_NIL] = {_literal, NULL, PRECEDENCE_NONE},
 	[TOKEN_OR] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_PRINT] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_RETURN] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_SUPER] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_THIS] = {NULL, NULL, PRECEDENCE_NONE},
-	[TOKEN_TRUE] = {NULL, NULL, PRECEDENCE_NONE},
+	[TOKEN_TRUE] = {_literal, NULL, PRECEDENCE_NONE},
 	[TOKEN_VAR] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_WHILE] = {NULL, NULL, PRECEDENCE_NONE},
 	[TOKEN_ERROR] = {NULL, NULL, PRECEDENCE_NONE},
@@ -184,6 +185,21 @@ static void _binary(Parser *parser) {
 		case TOKEN_STAR: WRITE_BYTE(OP_MULTIPLY); break;
 		case TOKEN_SLASH: WRITE_BYTE(OP_DIVIDE); break;
 		case TOKEN_CARROT: WRITE_BYTE(OP_POWER); break;
+		case TOKEN_BANG_EQUAL:
+			WRITE_BYTE(OP_EQUAL);
+			WRITE_BYTE(OP_NOT);
+			break;
+		case TOKEN_EQUAL_EQUAL: WRITE_BYTE(OP_EQUAL); break;
+		case TOKEN_GREATER: WRITE_BYTE(OP_GREATER); break;
+		case TOKEN_GREATER_EQUAL:
+			WRITE_BYTE(OP_LESS);
+			WRITE_BYTE(OP_NOT);
+			break;
+		case TOKEN_LESS: WRITE_BYTE(OP_LESS); break;
+		case TOKEN_LESS_EQUAL:
+			WRITE_BYTE(OP_GREATER);
+			WRITE_BYTE(OP_NOT);
+			break;
 		default: break;
 	}
 }
@@ -194,6 +210,7 @@ static void _unary(Parser *parser) {
 
 	switch (operatorType) {
 		case TOKEN_MINUS: WRITE_BYTE(OP_NEGATE); break;
+		case TOKEN_BANG: WRITE_BYTE(OP_NOT); break;
 		default: break;
 	}
 }
@@ -204,9 +221,18 @@ static void _grouping(Parser *parser) {
 }
 
 static void _number(Parser *parser) {
-	double value = strtod(parser->previous.start, NULL);
+	double number = strtod(parser->previous.start, NULL);
 	WRITE_BYTE(OP_CONSTANT);
-	WRITE_WORD(_make_constant(parser, value));
+	WRITE_WORD(_make_constant(parser, MAKE_NUMBER(number)));
+}
+
+static void _literal(Parser *parser) {
+	switch (parser->previous.type) {
+		case TOKEN_FALSE: WRITE_BYTE(OP_FALSE); break;
+		case TOKEN_NIL: WRITE_BYTE(OP_NIL); break;
+		case TOKEN_TRUE: WRITE_BYTE(OP_TRUE); break;
+		default: break;
+	}
 }
 
 bool compile(Chunk *chunk, char *source) {

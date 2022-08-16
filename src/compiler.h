@@ -4,7 +4,7 @@
 #include "common.h"
 #include "scanner.h"
 
-typedef struct Parser {
+typedef struct {
 	Chunk *chunk;
 	Scanner *scanner;
 

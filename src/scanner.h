@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-typedef enum TokenType {
+typedef enum {
 	// Single char
 	TOKEN_PAREN_LEFT,
 	TOKEN_PAREN_RIGHT,
@@ -56,14 +56,14 @@ typedef enum TokenType {
 	TOKEN_EOF
 } TokenType;
 
-typedef struct Token {
+typedef struct {
 	TokenType type;
 	char *start;
 	int length;
 	int line;
 } Token;
 
-typedef struct Scanner {
+typedef struct {
 	char *start;
 	char *current;
 	int line;

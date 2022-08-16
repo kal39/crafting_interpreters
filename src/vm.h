@@ -4,15 +4,15 @@
 #include "chunk.h"
 #include "common.h"
 
-typedef struct VM {
+typedef struct {
 	Chunk *chunk;
 	Byte *ip;
 
-	Value *stackTop;
-	Value stack[STACK_SIZE];
+	int stackSize;
+	Value stack[MAX_STACK_SIZE];
 } VM;
 
-typedef enum InterpretResult {
+typedef enum {
 	INTERPRET_OK,
 	INTERPRET_COMPILE_ERROR,
 	INTERPRET_RUNTIME_ERROR,
@@ -21,8 +21,9 @@ typedef enum InterpretResult {
 VM *vm_create();
 void vm_destroy(VM *vm);
 
-#define VM_PUSH(vm, value) (*(vm)->stackTop++ = (value))
-#define VM_POP(vm) (*(--(vm)->stackTop))
+void vm_push(VM *vm, Value value);
+Value vm_peek(VM *vm);
+Value vm_pop(VM *vm);
 
 InterpretResult vm_interpret(VM *vm, char *source);
 
